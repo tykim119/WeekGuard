@@ -1,0 +1,26 @@
+﻿# 빌드 출력
+*.exe
+*.dll
+*.lib
+*.obj
+*.pdb
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.vcxproj.user
+*.sdf
+ipch/
+*.aps
+*.ncb
+*.res
+*.log
+
+# 빌드 디렉터리
+Debug/
+Release/
+
+# 임시 파일
+*.tmp
+*.cache
