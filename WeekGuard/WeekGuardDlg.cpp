@@ -11,6 +11,10 @@
 #define new DEBUG_NEW
 #endif
 
+#include <thread>
+#include <chrono>
+#include <ctime>
+#include <fstream>
 
 // 응용 프로그램 정보에 사용되는 CAboutDlg 대화 상자입니다.
 
@@ -51,6 +55,9 @@ CWeekGuardDlg::CWeekGuardDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(CWeekGuardDlg::IDD, pParent)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+
+	m_nTimeLimitSeconds = GetTimeLimitForDay() * 60; // 요일에 따른 기본 시간 제한 설정
+	m_nRemainingSeconds = LoadRemainingTime();
 }
 
 void CWeekGuardDlg::DoDataExchange(CDataExchange* pDX)
@@ -62,6 +69,7 @@ BEGIN_MESSAGE_MAP(CWeekGuardDlg, CDialogEx)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
+	ON_WM_TIMER()
 END_MESSAGE_MAP()
 
 
@@ -96,8 +104,11 @@ BOOL CWeekGuardDlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);			// 큰 아이콘을 설정합니다.
 	SetIcon(m_hIcon, FALSE);		// 작은 아이콘을 설정합니다.
 
-	// TODO: 여기에 추가 초기화 작업을 추가합니다.
-
+	UpdateData(TRUE);
+	std::thread timerThread([this]() { this->StartUsageTimer(); });
+	timerThread.detach();
+	//
+	SetTimer(0, 100, NULL);
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
 }
 
@@ -150,3 +161,89 @@ HCURSOR CWeekGuardDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
+
+int CWeekGuardDlg::GetTimeLimitForDay() {
+	std::time_t t = std::time(nullptr);
+	std::tm localTime;
+	localtime_s(&localTime, &t);
+
+	// 평일 (월요일~금요일)은 30분, 주말 (토요일, 일요일)은 120분 설정
+	if (localTime.tm_wday == 0 || localTime.tm_wday == 6) {
+		return 11; // 주말
+	}
+	else {
+		return 30;  // 평일
+	}
+}
+
+int CWeekGuardDlg::LoadRemainingTime() {
+	TCHAR szPath[MAX_PATH] = { 0 };
+	GetModuleFileName(NULL, szPath, MAX_PATH);
+	PathRemoveFileSpec(szPath);
+	std::wstring usageTimeFilePath = std::wstring(szPath) + L"\\usetime.ini";
+
+	std::ifstream inFile(usageTimeFilePath);
+	int remainingTime = m_nTimeLimitSeconds;
+	if (inFile.is_open()) {
+		inFile >> remainingTime;
+		inFile.close();
+	}
+	return (remainingTime > 0) ? remainingTime : m_nTimeLimitSeconds;
+}
+
+void CWeekGuardDlg::SaveRemainingTime(int remainingTime) {
+	TCHAR szPath[MAX_PATH] = { 0 };
+	GetModuleFileName(NULL, szPath, MAX_PATH);
+	PathRemoveFileSpec(szPath);
+	std::wstring usageTimeFilePath = std::wstring(szPath) + L"\\usetime.ini";
+
+	std::ofstream outFile(usageTimeFilePath);
+	if (outFile.is_open()) {
+		outFile << remainingTime;
+		outFile.close();
+	}
+}
+
+void CWeekGuardDlg::ShowNonBlockingMessage(const CString& message) {
+	CWnd* pWnd = new CWnd();
+	if (pWnd->CreateEx(0, AfxRegisterWndClass(0), message, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
+		CW_USEDEFAULT, CW_USEDEFAULT, 300, 100, nullptr, nullptr)) {
+		pWnd->ShowWindow(SW_SHOWNORMAL);
+		std::thread([pWnd]() {
+			std::this_thread::sleep_for(std::chrono::seconds(10));
+			pWnd->PostMessage(WM_CLOSE);
+		}).detach();
+	}
+	else {
+		delete pWnd;
+	}
+}
+
+void CWeekGuardDlg::StartUsageTimer() {
+	while (m_nRemainingSeconds > 0) {
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+		m_nRemainingSeconds--;
+		SaveRemainingTime(m_nRemainingSeconds);
+
+		if (m_nRemainingSeconds == 600) { // 600초 == 10분
+			CString warningMessage;
+			warningMessage.Format(_T("경고: 10분 남았습니다!"));
+			ShowNonBlockingMessage(warningMessage);
+		}
+
+		if (m_nRemainingSeconds <= 0) {
+			ShowNonBlockingMessage(_T("사용 시간이 종료되었습니다. 컴퓨터가 종료됩니다."));
+			std::this_thread::sleep_for(std::chrono::seconds(5)); // 메시지를 잠시 표시한 후 종료
+			ExitWindowsEx(EWX_POWEROFF | EWX_FORCE, SHTDN_REASON_MAJOR_OTHER);
+		}
+	}
+}
+
+void CWeekGuardDlg::OnTimer(UINT_PTR nIDEvent)
+{
+	// TODO: 여기에 메시지 처리기 코드를 추가 및/또는 기본값을 호출합니다.
+	KillTimer(nIDEvent);
+	ShowWindow(SW_HIDE);
+
+	CDialogEx::OnTimer(nIDEvent);
+}

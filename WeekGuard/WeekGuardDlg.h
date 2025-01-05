@@ -18,7 +18,15 @@ public:
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV 지원입니다.
 
+	int GetTimeLimitForDay();
+	int LoadRemainingTime();
+	void SaveRemainingTime(int remainingTime);
+	void ShowNonBlockingMessage(const CString& message);
+	void StartUsageTimer();
+	void ShowBlackScreen();
 
+	int m_nTimeLimitSeconds;
+	int m_nRemainingSeconds;
 // 구현입니다.
 protected:
 	HICON m_hIcon;
@@ -29,4 +37,6 @@ protected:
 	afx_msg void OnPaint();
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
+public:
+	afx_msg void OnTimer(UINT_PTR nIDEvent);
 };
