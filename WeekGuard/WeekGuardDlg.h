@@ -4,13 +4,14 @@
 
 #pragma once
 
-
+#include "TimeDlg.h"
 // CWeekGuardDlg 대화 상자
 class CWeekGuardDlg : public CDialogEx
 {
 // 생성입니다.
 public:
 	CWeekGuardDlg(CWnd* pParent = NULL);	// 표준 생성자입니다.
+	int m_nRemainingSeconds;
 
 // 대화 상자 데이터입니다.
 	enum { IDD = IDD_WEEKGUARD_DIALOG };
@@ -26,7 +27,8 @@ public:
 	void ShowBlackScreen();
 
 	int m_nTimeLimitSeconds;
-	int m_nRemainingSeconds;
+
+	CTimeDlg	*m_pCTimeDlg;
 // 구현입니다.
 protected:
 	HICON m_hIcon;
