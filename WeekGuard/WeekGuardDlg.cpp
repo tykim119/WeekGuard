@@ -17,6 +17,31 @@
 #include <fstream>
 
 // 응용 프로그램 정보에 사용되는 CAboutDlg 대화 상자입니다.
+BOOL EnableShutdownPrivilege() {
+	HANDLE hToken;
+	TOKEN_PRIVILEGES tkp;
+
+	// 프로세스 토큰 열기
+	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken)) {
+		return FALSE;
+	}
+
+	// 종료 권한 조회
+	LookupPrivilegeValue(NULL, SE_SHUTDOWN_NAME, &tkp.Privileges[0].Luid);
+	tkp.PrivilegeCount = 1;  // 하나의 권한을 설정
+	tkp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+
+	// 권한 활성화
+	AdjustTokenPrivileges(hToken, FALSE, &tkp, 0, (PTOKEN_PRIVILEGES)NULL, 0);
+	CloseHandle(hToken);
+
+	// 오류 확인
+	if (GetLastError() == ERROR_NOT_ALL_ASSIGNED) {
+		return FALSE;
+	}
+
+	return TRUE;
+}
 
 class CAboutDlg : public CDialogEx
 {
@@ -241,8 +266,9 @@ int CWeekGuardDlg::LoadRemainingTime() {
 		// 날짜가 다르면 시간을 초기화
 		remainingTime = m_nTimeLimitSeconds;
 	}
+	return remainingTime;
 
-	return (remainingTime > 0) ? remainingTime : m_nTimeLimitSeconds;
+	//return (remainingTime > 0) ? remainingTime : m_nTimeLimitSeconds;
 }
 
 void CWeekGuardDlg::SaveRemainingTime(int remainingTime) {
@@ -295,10 +321,26 @@ void CWeekGuardDlg::StartUsageTimer() {
 		*/
 		if (m_nRemainingSeconds <= 0) {
 			std::this_thread::sleep_for(std::chrono::seconds(5)); // 메시지를 잠시 표시한 후 종료
-			ExitWindowsEx(EWX_POWEROFF | EWX_FORCE, SHTDN_REASON_MAJOR_OTHER);
+			//ExitWindowsEx(EWX_POWEROFF | EWX_FORCE, SHTDN_REASON_MAJOR_OTHER);
+			if (EnableShutdownPrivilege()) {
+				if (!ExitWindowsEx(EWX_POWEROFF | EWX_FORCE, SHTDN_REASON_MAJOR_OTHER)) {
+				}
+			}
+			else {
+			}
 		}
 
 	}
+	//
+	std::this_thread::sleep_for(std::chrono::seconds(5)); // 메시지를 잠시 표시한 후 종료
+	//ExitWindowsEx(EWX_POWEROFF | EWX_FORCE, SHTDN_REASON_MAJOR_OTHER);
+	if (EnableShutdownPrivilege()) {
+		if (!ExitWindowsEx(EWX_POWEROFF | EWX_FORCE, SHTDN_REASON_MAJOR_OTHER)) {
+		}
+	}
+	else {
+	}
+
 }
 
 void CWeekGuardDlg::OnTimer(UINT_PTR nIDEvent)
@@ -335,7 +377,7 @@ void CWeekGuardDlg::OnBnClickedButton1()
 		ShowWindow(SW_HIDE);
 	}
 	else {
-		AfxMessageBox(L"패스워드가 트렸지롱~~");
+		AfxMessageBox(L"패스워드가 틀렸지롱~~");
 	}
 }
 
