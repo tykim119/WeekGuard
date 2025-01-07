@@ -70,6 +70,9 @@ BEGIN_MESSAGE_MAP(CWeekGuardDlg, CDialogEx)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
 	ON_WM_TIMER()
+	ON_WM_ERASEBKGND()
+	ON_BN_CLICKED(IDC_BUTTON1, &CWeekGuardDlg::OnBnClickedButton1)
+	ON_BN_CLICKED(IDC_BUTTON2, &CWeekGuardDlg::OnBnClickedButton2)
 END_MESSAGE_MAP()
 
 
@@ -112,9 +115,11 @@ BOOL CWeekGuardDlg::OnInitDialog()
 	SetTimer(0, 100, NULL);
 	*/
 
-	m_pCTimeDlg = new CTimeDlg();
-	m_pCTimeDlg->Create(IDD_DIALOG_TIME, this);
-	m_pCTimeDlg->ShowWindow(SW_SHOW);
+	CRect screenRect;
+	GetDesktopWindow()->GetWindowRect(&screenRect);
+	MoveWindow(screenRect);
+	SetWindowPos(&CWnd::wndTopMost, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+
 
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
 }
@@ -157,7 +162,30 @@ void CWeekGuardDlg::OnPaint()
 	}
 	else
 	{
-		CDialogEx::OnPaint();
+		// 배경색을 노란색으로 채우고 텍스트를 그리기 위한 작업
+		CPaintDC dc(this); // 그리기를 위한 디바이스 컨텍스트입니다.
+
+		CRect rect;
+		GetClientRect(&rect);
+
+		// 배경색을 노란색으로 채움
+		CBrush brush(RGB(0, 0, 0));  // 노란색 배경
+		dc.FillRect(&rect, &brush);
+
+		// 텍스트 설정
+		CString strText = _T("v1.0.0.0 (대율아빠)");
+
+		// 텍스트 그리기 위치 계산 (우측 하단)
+		rect.left = rect.left + 10;  // 텍스트의 최대 너비를 200으로 설정
+		rect.top = rect.bottom - 50;   // 텍스트의 최대 높이를 50으로 설정
+
+		// 텍스트 색상을 노란색으로 설정
+		dc.SetTextColor(RGB(255, 255, 0));  // 텍스트는 검정색으로 설정
+		dc.SetBkMode(TRANSPARENT);  // 배경을 투명하게 설정
+		//dc.SetTextAlign(TA_RIGHT | TA_BOTTOM);  // 우측 하단 정렬
+		dc.DrawText(strText, &rect, DT_SINGLELINE | DT_VCENTER);
+
+
 	}
 }
 
@@ -167,6 +195,7 @@ HCURSOR CWeekGuardDlg::OnQueryDragIcon()
 {
 	return static_cast<HCURSOR>(m_hIcon);
 }
+
 
 
 int CWeekGuardDlg::GetTimeLimitForDay() {
@@ -191,10 +220,28 @@ int CWeekGuardDlg::LoadRemainingTime() {
 
 	std::ifstream inFile(usageTimeFilePath);
 	int remainingTime = m_nTimeLimitSeconds;
+	std::time_t lastSavedTime = 0;
+
 	if (inFile.is_open()) {
 		inFile >> remainingTime;
+		inFile >> lastSavedTime;  // 마지막 저장된 날짜 읽기
 		inFile.close();
 	}
+
+	// 현재 날짜
+	std::time_t currentTime = std::time(nullptr);
+	std::tm currentDate;
+	localtime_s(&currentDate, &currentTime);
+
+	// 마지막 저장된 날짜
+	std::tm savedDate;
+	localtime_s(&savedDate, &lastSavedTime);
+
+	if (currentDate.tm_yday != savedDate.tm_yday || currentDate.tm_year != savedDate.tm_year) {
+		// 날짜가 다르면 시간을 초기화
+		remainingTime = m_nTimeLimitSeconds;
+	}
+
 	return (remainingTime > 0) ? remainingTime : m_nTimeLimitSeconds;
 }
 
@@ -206,7 +253,9 @@ void CWeekGuardDlg::SaveRemainingTime(int remainingTime) {
 
 	std::ofstream outFile(usageTimeFilePath);
 	if (outFile.is_open()) {
-		outFile << remainingTime;
+		outFile << remainingTime << std::endl;
+		std::time_t currentTime = std::time(nullptr);
+		outFile << currentTime << std::endl;  // 현재 날짜 저장
 		outFile.close();
 	}
 }
@@ -253,4 +302,49 @@ void CWeekGuardDlg::OnTimer(UINT_PTR nIDEvent)
 	ShowWindow(SW_HIDE);
 
 	CDialogEx::OnTimer(nIDEvent);
+}
+
+BOOL CWeekGuardDlg::OnEraseBkgnd(CDC* pDC)
+{
+#if 1
+	CRect rect;
+	GetClientRect(&rect);
+
+	// 배경색을 원하는 색으로 채움 (예: 검정색)
+	CBrush brush(RGB(0, 0, 0));
+	pDC->FillRect(&rect, &brush);
+	return TRUE;  // 기본 동작을 막음
+#else
+	return CDialogEx::OnEraseBkgnd(pDC);
+#endif
+}
+
+
+void CWeekGuardDlg::OnBnClickedButton1()
+{
+	CString strBuffer;
+	GetDlgItem(IDC_EDIT1)->GetWindowText(strBuffer);
+	if (strBuffer == L"dkanrjsk1!") {
+		// 화면 숨기기
+		ShowWindow(SW_HIDE);
+	}
+	else {
+		AfxMessageBox(L"패스워드가 트렸지롱~~");
+	}
+}
+
+
+void CWeekGuardDlg::OnBnClickedButton2()
+{
+	// 화면 숨기기
+	ShowWindow(SW_HIDE);
+
+	m_pCTimeDlg = new CTimeDlg();
+	m_pCTimeDlg->Create(IDD_DIALOG_TIME, this);
+	m_pCTimeDlg->ShowWindow(SW_SHOW);
+
+	// 시간 타이머
+	std::thread timerThread([this]() { this->StartUsageTimer(); });
+	timerThread.detach();
+
 }
