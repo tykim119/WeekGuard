@@ -280,7 +280,7 @@ void CWeekGuardDlg::StartUsageTimer() {
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 		m_nRemainingSeconds--;
 		SaveRemainingTime(m_nRemainingSeconds);
-
+		/*
 		if (m_nRemainingSeconds == 600) { // 600초 == 10분
 			CString warningMessage;
 			warningMessage.Format(_T("경고: 10분 남았습니다!"));
@@ -292,6 +292,12 @@ void CWeekGuardDlg::StartUsageTimer() {
 			std::this_thread::sleep_for(std::chrono::seconds(5)); // 메시지를 잠시 표시한 후 종료
 			ExitWindowsEx(EWX_POWEROFF | EWX_FORCE, SHTDN_REASON_MAJOR_OTHER);
 		}
+		*/
+		if (m_nRemainingSeconds <= 0) {
+			std::this_thread::sleep_for(std::chrono::seconds(5)); // 메시지를 잠시 표시한 후 종료
+			ExitWindowsEx(EWX_POWEROFF | EWX_FORCE, SHTDN_REASON_MAJOR_OTHER);
+		}
+
 	}
 }
 
