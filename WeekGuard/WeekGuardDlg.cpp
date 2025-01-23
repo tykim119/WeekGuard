@@ -230,7 +230,7 @@ int CWeekGuardDlg::GetTimeLimitForDay() {
 
 	// 평일 (월요일~금요일)은 30분, 주말 (토요일, 일요일)은 120분 설정
 	if (localTime.tm_wday == 0 || localTime.tm_wday == 6) {
-		return 11; // 주말
+		return 120; // 주말
 	}
 	else {
 		return 30;  // 평일
@@ -395,4 +395,33 @@ void CWeekGuardDlg::OnBnClickedButton2()
 	std::thread timerThread([this]() { this->StartUsageTimer(); });
 	timerThread.detach();
 
+}
+
+
+BOOL CWeekGuardDlg::PreTranslateMessage(MSG* pMsg)
+{
+	switch (pMsg->message){
+		// alt + f4
+	case WM_SYSKEYDOWN:
+	{
+		if (pMsg->wParam == VK_F4)
+			return TRUE;
+	}
+		break;
+		// 기타
+	case WM_KEYDOWN:
+	{
+		if (pMsg->wParam == VK_ESCAPE || pMsg->wParam == VK_SPACE || pMsg->wParam == VK_CANCEL) {
+			return TRUE;
+		}
+		else if (pMsg->wParam == VK_RETURN) {
+			// 관리자 로그인 인증 처리
+			OnBnClickedButton1();
+			return TRUE;
+		}
+	}
+		break;
+
+	}	// end of switch
+	return CDialogEx::PreTranslateMessage(pMsg);
 }

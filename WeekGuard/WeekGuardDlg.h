@@ -44,4 +44,5 @@ public:
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
 	afx_msg void OnBnClickedButton1();
 	afx_msg void OnBnClickedButton2();
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
 };
