@@ -144,7 +144,45 @@ BOOL CWeekGuardDlg::OnInitDialog()
 	GetDesktopWindow()->GetWindowRect(&screenRect);
 	MoveWindow(screenRect);
 	SetWindowPos(&CWnd::wndTopMost, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+	//
 
+	// 다이얼로그 크기 가져오기
+	CRect dlgRect;
+	GetClientRect(dlgRect);
+
+	// 다이얼로그의 중간 좌표 계산
+	int dlgCenterX = dlgRect.Width() / 2;
+	int dlgCenterY = dlgRect.Height() / 2;
+
+	// CEdit 컨트롤의 크기 가져오기
+	CRect editRect;
+	GetDlgItem(IDC_EDIT1)->GetClientRect(editRect);
+	// CEdit 컨트롤을 다이얼로그의 중간에 배치
+	int editPosX = dlgCenterX - (editRect.Width() / 2);
+	int editPosY = dlgCenterY - (editRect.Height() / 2);
+	// CEdit 컨트롤의 위치 설정
+	GetDlgItem(IDC_EDIT1)->MoveWindow(editPosX, editPosY, editRect.Width(), editRect.Height());
+
+	{
+		// CButton 컨트롤의 크기 가져오기
+		CRect btnRect;
+		GetDlgItem(IDC_BUTTON1)->GetClientRect(btnRect);
+		// CEdit 컨트롤을 다이얼로그의 중간에 배치
+		int btnPosX = dlgCenterX - (btnRect.Width() / 2);
+		int btnPosY = dlgCenterY - (btnRect.Height() / 2);
+		// CEdit 컨트롤의 위치 설정
+		GetDlgItem(IDC_BUTTON1)->MoveWindow(btnPosX + 130, btnPosY, btnRect.Width(), btnRect.Height());
+	}
+	{
+		// CButton 컨트롤의 크기 가져오기
+		CRect btnRect;
+		GetDlgItem(IDC_BUTTON2)->GetClientRect(btnRect);
+		// CEdit 컨트롤을 다이얼로그의 중간에 배치
+		int btnPosX = dlgCenterX - (btnRect.Width() / 2);
+		int btnPosY = dlgCenterY - (btnRect.Height() / 2);
+		// CEdit 컨트롤의 위치 설정
+		GetDlgItem(IDC_BUTTON2)->MoveWindow(btnPosX + 130, btnPosY+50, btnRect.Width(), btnRect.Height());
+	}
 
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
 }
